@@ -236,11 +236,6 @@ public class Query {
 
     public void transaction_fast_search(int cid, String movie_title)
             throws Exception {
-                /* searches for movies with matching titles: SELECT * FROM movie WHERE name LIKE movie_title */
-        /* prints the movies, directors, actors, and the availability status:
-           AVAILABLE, or UNAVAILABLE, or YOU CURRENTLY RENT IT */
-
-        /* set the first (and single) '?' parameter */
         _search_statement.clearParameters();
         _search_statement.setString(1, '%' + movie_title + '%');
 
