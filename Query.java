@@ -3,6 +3,8 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Array;
+import java.util.ArrayList;
 
 import java.io.FileInputStream;
 
@@ -32,6 +34,18 @@ public class Query {
                      + "FROM movie_directors x, directors y "
                      + "WHERE x.mid = ? and x.did = y.id";
     private PreparedStatement _director_mid_statement;
+
+    private String _fast_search_director_sql = "SELECT x.mid, y.* "
+                     + "FROM movie_directors x, directors y "
+                     + "WHERE x.mid = ANY (?) and x.did = y.id "
+                     + "ORDER BY x.mid";
+    private PreparedStatement _fast_search_director_statement;
+
+    private String _fast_search_actor_sql = "SELECT x.mid, y.* "
+                     + "FROM casts x, actor y "
+                     + "WHERE x.mid = ANY (?) and x.pid = y.id "
+                     + "ORDER BY x.mid";
+    private PreparedStatement _fast_search_actor_statement;
 
     /* uncomment, and edit, after your create your own customer database */
     /*
@@ -92,6 +106,8 @@ public class Query {
 
         _search_statement = _imdb.prepareStatement(_search_sql);
         _director_mid_statement = _imdb.prepareStatement(_director_mid_sql);
+        _fast_search_director_statement = _imdb.prepareStatement(_fast_search_director_sql);
+        _fast_search_actor_statement = _imdb.prepareStatement(_fast_search_actor_sql);
 
         /* uncomment after you create your customers database */
         /*
@@ -220,10 +236,56 @@ public class Query {
 
     public void transaction_fast_search(int cid, String movie_title)
             throws Exception {
-        /* like transaction_search, but uses joins instead of independent joins
-           Needs to run three SQL queries: (a) movies, (b) movies join directors, (c) movies join actors
-           Answers are sorted by mid.
-           Then merge-joins the three answer sets */
+                /* searches for movies with matching titles: SELECT * FROM movie WHERE name LIKE movie_title */
+        /* prints the movies, directors, actors, and the availability status:
+           AVAILABLE, or UNAVAILABLE, or YOU CURRENTLY RENT IT */
+
+        /* set the first (and single) '?' parameter */
+        _search_statement.clearParameters();
+        _search_statement.setString(1, '%' + movie_title + '%');
+
+        ResultSet movie_set = _search_statement.executeQuery();
+        ArrayList <Integer> mid_result = new ArrayList<Integer>();
+        ArrayList <String> string_result = new ArrayList<String>();
+        while (movie_set.next()) {
+            mid_result.add(movie_set.getInt(1));
+            string_result.add(movie_set.getString(2)+"|"+movie_set.getString(3));
+        }
+        Integer[] data = mid_result.toArray(new Integer[mid_result.size()]);
+        Array mid_array = _imdb.createArrayOf("integer", data);
+
+        _fast_search_director_statement.clearParameters();
+        _fast_search_director_statement.setArray(1, mid_array);
+        _fast_search_actor_statement.clearParameters();
+        _fast_search_actor_statement.setArray(1, mid_array);
+
+        ResultSet director_set = _fast_search_director_statement.executeQuery();
+        ResultSet actor_set = _fast_search_actor_statement.executeQuery();
+
+        director_set.next();
+        actor_set.next();
+
+        for (int x=0; x<mid_result.size(); x++){
+            int mid = mid_result.get(x);
+            String info = string_result.get(x);
+            System.out.println("ID: " + mid + " NAME: "
+                    + info.substring(0, info.indexOf("|")) + " YEAR: "
+                    + info.substring(info.indexOf("|")+1, info.length()));
+            do{
+                int dir_mid = director_set.getInt(1);
+                if (dir_mid != mid)
+                    break;
+                System.out.println("\t\tDirector: " + director_set.getString(3)
+                        + " " + director_set.getString(4));
+            }while(director_set.next());
+            do{
+                int act_mid = actor_set.getInt(1);
+                if (act_mid != mid)
+                    break;
+                System.out.println("\t\tActor: " + actor_set.getString(3)
+                        + " " + actor_set.getString(4));
+            }while(actor_set.next());
+        }
     }
 
 }
