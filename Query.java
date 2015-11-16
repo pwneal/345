@@ -48,19 +48,26 @@ public class Query {
     private PreparedStatement _fast_search_actor_statement;
 
     /* uncomment, and edit, after your create your own customer database */
-    /*
-    private String _customer_login_sql = "SELECT * FROM customers WHERE login = ? and password = ?";
+    private String _customer_login_sql = "SELECT * FROM Customers WHERE username = ? and password = ? ";
     private PreparedStatement _customer_login_statement;
 
     private String _begin_transaction_read_write_sql = "BEGIN TRANSACTION READ WRITE";
     private PreparedStatement _begin_transaction_read_write_statement;
+
+    private String _personal_data_sql = "select c.name, (movielimit - count(rid)) AS remaining "+
+                                        "from customers as c INNER JOIN "+
+                                        "Records on Records.cid=c.cid, "+
+                                        "Plan "+
+                                        "WHERE Plan.name=c.pname AND "+
+                                        "c.cid = ? AND dateEnd IS NULL "+
+                                        "GROUP BY c.name, movielimit;";
+    private PreparedStatement _personal_data_statement;
 
     private String _commit_transaction_sql = "COMMIT TRANSACTION";
     private PreparedStatement _commit_transaction_statement;
 
     private String _rollback_transaction_sql = "ROLLBACK TRANSACTION";
     private PreparedStatement _rollback_transaction_statement;
-     */
 
     public Query() {
     }
@@ -109,16 +116,12 @@ public class Query {
         _fast_search_director_statement = _imdb.prepareStatement(_fast_search_director_sql);
         _fast_search_actor_statement = _imdb.prepareStatement(_fast_search_actor_sql);
 
-        /* uncomment after you create your customers database */
-        /*
         _customer_login_statement = _customer_db.prepareStatement(_customer_login_sql);
         _begin_transaction_read_write_statement = _customer_db.prepareStatement(_begin_transaction_read_write_sql);
         _commit_transaction_statement = _customer_db.prepareStatement(_commit_transaction_sql);
         _rollback_transaction_statement = _customer_db.prepareStatement(_rollback_transaction_sql);
-         */
+        _personal_data_statement = _customer_db.prepareStatement(_personal_data_sql);
 
-        /* add here more prepare statements for all the other queries you need */
-        /* . . . . . . */
     }
 
 
@@ -157,9 +160,6 @@ public class Query {
     /* login transaction: invoked only once, when the app is started  */
     public int transaction_login(String name, String password) throws Exception {
         /* authenticates the user, and returns the user id, or -1 if authentication fails */
-
-        /* Uncomment after you create your own customers database */
-        /*
         int cid;
 
         _customer_login_statement.clearParameters();
@@ -169,12 +169,26 @@ public class Query {
         if (cid_set.next()) cid = cid_set.getInt(1);
         else cid = -1;
         return(cid);
-         */
-        return (55);
     }
 
     public void transaction_personal_data(int cid) throws Exception {
         /* println the customer's personal data: name, and plan number */
+                
+        String Greeting = "";
+        
+        _personal_data_statement.clearParameters();
+        _personal_data_statement.setInt(1, cid);
+        ResultSet personal_data_set = _personal_data_statement.executeQuery();
+        if (personal_data_set.next()) {
+            String displayName;
+            int remainingRentals;
+            displayName = personal_data_set.getString(1);
+            remainingRentals = personal_data_set.getInt(2);
+            Greeting = "Hello "+displayName+" you have "+
+                        ((remainingRentals > 8) ? "infinite" : remainingRentals)+
+                        " rentals remaining.";
+        }
+        System.out.println(Greeting);
     }
 
 
