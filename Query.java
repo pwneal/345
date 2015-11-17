@@ -34,6 +34,15 @@ public class Query {
                      + "FROM movie_directors x, directors y "
                      + "WHERE x.mid = ? and x.did = y.id";
     private PreparedStatement _director_mid_statement;
+    
+    // added for search method by Emma
+	private String _actor_mid_sql = "SELECT actor.fname, actor.lname "
+									+"FROM movie, casts, actor "
+									+"WHERE movie.id=casts.mid AND casts.pid=actor.id AND movie.id=?";
+	private PreparedStatement _actor_mid_statement;
+	
+	private String _availability_sql = "SELECT cid FROM movies WHERE mid = ?";
+	private PreparedStatement _availability_statement;
 
     private String _fast_search_director_sql = "SELECT x.mid, y.* "
                      + "FROM movie_directors x, directors y "
@@ -221,7 +230,33 @@ public class Query {
             }
             director_set.close();
             /* now you need to retrieve the actors, in the same manner */
+_actor_mid_statement.clearParameters();
+			_actor_mid_statement.setInt(1, mid);
+			ResultSet actor_set = _actor_mid_statement.executeQuery();
+			while (actor_set.next()) {
+				System.out.println("\t\tActor: " + actor_set.getString(2) + " " + actor_set.getString(1));
+			}
+			actor_set.close();
+			
             /* then you have to find the status: of "AVAILABLE" "YOU HAVE IT", "UNAVAILABLE" */
+			_availability_statement.clearParameters();
+			_availability_statement.setInt(1, mid);
+			ResultSet cid_set = _availability_statement.executeQuery();
+			if (cid_set.next()) {
+				renter = cid_set.getInt(1);
+			}
+			// if no results print AVAILABLE
+			if (renter == 0) {
+				System.out.println("\t\tAVAILABLE");
+			} 
+			// if non-customer print UNAVAILABLE
+			else if (renter != cid) {
+				System.out.println("\t\tUNAVAILABLE");
+			}
+			// if customer result print YOU HAVE IT
+			else if (renter == cid) {
+				System.out.println("\t\tYOU HAVE IT");
+			}
         }
         System.out.println();
     }
