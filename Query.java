@@ -292,7 +292,8 @@ _actor_mid_statement.clearParameters();
     }
 
     public void transaction_rent(int cid, int mid) throws Exception {
-    	_personal_data_statement.clearParameters();
+    	_begin_transaction_read_write_statement.executeUpdate();
+        _personal_data_statement.clearParameters();
         _personal_data_statement.setInt(1, cid);
         ResultSet personal_data_set = _personal_data_statement.executeQuery();
 
@@ -302,32 +303,37 @@ _actor_mid_statement.clearParameters();
             if(remainingRentals > 0){
                  _rent_movie_statement.clearParameters();
                  _add_cid_movie_statement.clearParameters();
+
                  _rent_movie_statement.setInt(1, cid+mid);
                  _rent_movie_statement.setInt(2, cid);
                  _rent_movie_statement.setInt(3, mid);
                  _rent_movie_statement.executeUpdate();
+
                  _add_cid_movie_statement.setInt(1, cid);
                  _add_cid_movie_statement.setInt(2, mid);
                  _add_cid_movie_statement.executeUpdate();
+                 _commit_transaction_statement.executeUpdate();
              }
              else{
                 System.out.println("You have already rented the max amount of movies for your plan.");
-
+                _rollback_transaction_statement.executeUpdate();
              }
-
         }
         /* rend the movie mid to the customer cid */
         /* remember to enforce consistency ! */
     }
 
     public void transaction_return(int cid, int mid) throws Exception {
-    	_return_movie_statement.clearParameters();
+    	_begin_transaction_read_write_statement.executeUpdate();
+        _return_movie_statement.clearParameters();
         _return_movie_statement.setInt(1, mid);
+        _return_movie_statement.setInt(2, cid);
         _return_movie_statement.executeUpdate();
         
         _remove_cid_movie_statement.clearParameters();
         _remove_cid_movie_statement.setInt(1, mid);
         _remove_cid_movie_statement.executeUpdate();
+        _commit_transaction_statement.executeUpdate();
         /* return the movie mid by the customer cid */
     }
 
