@@ -23,8 +23,7 @@ create table Movies(
 	name varChar(100),
 	cid int references customers(cid));
 
-create table Records(
-	rid int primary key,
+create table Rents(
 	cid int references customers(cid),
 	mid int references movies(mid),
 	dateStart date,
@@ -48,23 +47,20 @@ insert into movies (mid, name) values (3,'Placeholder 2');
 insert into movies (mid, name) values (4,'Placeholder 3');
 insert into movies (mid, name) values (5,'Placeholder 4');
 
-insert into records (rid, cid, mid, dateStart) values (4, 1, 547385, '2015-01-01');
+insert into rents (cid, mid, dateStart) values (4, 1, 547385, '2015-01-01');
 update movies set cid = 1 where mid = 547385;
 
-insert into records (rid, cid, mid, dateStart) values (1, 1, 1, '2015-01-03');
+insert into rents (cid, mid, dateStart) values (1, 1, 1, '2015-01-03');
 update movies set cid = 1 where mid = 1;
 
-insert into records (rid, cid, mid, dateStart) values (5, 1, 2, '2015-01-03');
+insert into rents (cid, mid, dateStart) values (5, 1, 2, '2015-01-03');
 update movies set cid = 1 where mid = 2;
 
-insert into records (rid, cid, mid, dateStart) values (6, 1, 3, '2015-01-03');
+insert into rents (cid, mid, dateStart) values (6, 1, 3, '2015-01-03');
 update movies set cid = 1 where mid = 3;
 
-insert into records (rid, cid, mid, dateStart) values (7, 1, 4, '2015-01-03');
+insert into rents (cid, mid, dateStart) values (7, 1, 4, '2015-01-03');
 update movies set cid = 1 where mid = 4;
 
-insert into records (rid, cid, mid, dateStart) values (8, 1, 5, '2015-01-03');
+insert into rents (cid, mid, dateStart) values (8, 1, 5, '2015-01-03');
 update movies set cid = 1 where mid = 5;
-
---update records set dateEnd = '2015-01-05' where rid = 0;
---update movies set cid = null where mid = 1;
