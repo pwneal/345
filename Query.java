@@ -356,26 +356,32 @@ _actor_mid_statement.clearParameters();
         _personal_data_statement.setInt(1, cid);
         ResultSet personal_data_set = _personal_data_statement.executeQuery();
 
+        _availability_statement.clearParameters();
+        _availability_statement.setInt(1, mid);
+        ResultSet available = _availability_statement.executeQuery();
+
         if (personal_data_set.next()) {
-            int remainingRentals = personal_data_set.getInt(2);
-            if(remainingRentals > 0){
-                 _rent_movie_statement.clearParameters();
-                 _add_cid_movie_statement.clearParameters();
+            if (available.next()) {
+                int remainingRentals = personal_data_set.getInt(2);
+                if((remainingRentals > 0) && (available.getInt(1) == 0)){
+                     _rent_movie_statement.clearParameters();
+                     _add_cid_movie_statement.clearParameters();
 
-                 _rent_movie_statement.setInt(1, cid+mid);
-                 _rent_movie_statement.setInt(2, cid);
-                 _rent_movie_statement.setInt(3, mid);
-                 _rent_movie_statement.executeUpdate();
+                     _rent_movie_statement.setInt(1, cid+mid);
+                     _rent_movie_statement.setInt(2, cid);
+                     _rent_movie_statement.setInt(3, mid);
+                     _rent_movie_statement.executeUpdate();
 
-                 _add_cid_movie_statement.setInt(1, cid);
-                 _add_cid_movie_statement.setInt(2, mid);
-                 _add_cid_movie_statement.executeUpdate();
-                 _commit_transaction_statement.executeUpdate();
-             }
-             else{
-                System.out.println("You have already rented the max amount of movies for your plan.");
+                     _add_cid_movie_statement.setInt(1, cid);
+                     _add_cid_movie_statement.setInt(2, mid);
+                     _add_cid_movie_statement.executeUpdate();
+                    _commit_transaction_statement.executeUpdate();
+                }
+                else{
+                System.out.println("You have already rented the max amount of movies for your plan or you are renting a movie that you already have or is checked out to someone else.");
                 _rollback_transaction_statement.executeUpdate();
-             }
+                }
+            }
         }
         /* rend the movie mid to the customer cid */
         /* remember to enforce consistency ! */
