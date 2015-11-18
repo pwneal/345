@@ -166,7 +166,6 @@ public class Query {
         _return_movie_statement = _customer_db.prepareStatement(_return_movie_sql);
         _add_cid_movie_statement = _customer_db.prepareStatement(_add_cid_movie_sql);
         _remove_cid_movie_statement = _customer_db.prepareStatement(_remove_cid_movie_sql);
-        _availability_statement = _customer_db.prepareStatement(_availability_sql);
 
 
     }
