@@ -84,7 +84,7 @@ public class Query {
     private String _add_cid_movie_sql = "update movies set cid = ? where mid = ?;";
     private PreparedStatement _add_cid_movie_statement;
 
-    private String _return_movie_sql = "update records set dateEnd = current_timestamp where mid = ? and dateEnd=NULL;";
+    private String _return_movie_sql = "update records set dateend = current_timestamp where mid = ? and cid = ?;";
     private PreparedStatement _return_movie_statement;
 
     private String _remove_cid_movie_sql = "update movies set cid = NULL where mid = ?;";
