@@ -43,6 +43,18 @@ public class Query {
 	
 	private String _availability_sql = "SELECT cid FROM movies WHERE mid = ?";
 	private PreparedStatement _availability_statement;
+	
+	//for list_plans:
+	private String _list_plans_sql = "SELECT * FROM Plan";
+	private PreparedStatement _list_plans_statement;
+	
+	//for choose_plan:
+	private String _update_plan_sql = "UPDATE customers SET plid = ? WHERE cid = ?";
+	private PreparedStatement _update_plan_statement;
+	private String _plan_limit_sql = "SELECT name, movieLimit FROM Plan WHERE plid = ?";
+	private PreparedStatement _plan_limit_statement;
+	private String _current_plan_sql = "SELECT Plan.plid, Plan.name, Plan.movieLimit FROM Plan, Customers WHERE Plan.plid = Customers.plid AND Customers.cid = ?";
+	private PreparedStatement _current_plan_statement;
 
     private String _fast_search_director_sql = "SELECT x.mid, y.* "
                      + "FROM movie_directors x, directors y "
@@ -67,7 +79,7 @@ public class Query {
                                         "from customers as c INNER JOIN "+
                                         "Records on Records.cid=c.cid, "+
                                         "Plan "+
-                                        "WHERE Plan.name=c.pname AND "+
+                                        "WHERE Plan.plid=c.plid AND "+
                                         "c.cid = ? AND dateEnd IS NULL "+
                                         "GROUP BY c.name, movielimit;";
     private PreparedStatement _personal_data_statement;
@@ -134,6 +146,8 @@ public class Query {
 
         _search_statement = _imdb.prepareStatement(_search_sql);
         _director_mid_statement = _imdb.prepareStatement(_director_mid_sql);
+        _actor_mid_statement = _imdb.prepareStatement(_actor_mid_sql);
+	_availability_statement = _customer_db.prepareStatement(_availability_sql);
         _fast_search_director_statement = _imdb.prepareStatement(_fast_search_director_sql);
         _fast_search_actor_statement = _imdb.prepareStatement(_fast_search_actor_sql);
 
@@ -142,6 +156,11 @@ public class Query {
         _commit_transaction_statement = _customer_db.prepareStatement(_commit_transaction_sql);
         _rollback_transaction_statement = _customer_db.prepareStatement(_rollback_transaction_sql);
         _personal_data_statement = _customer_db.prepareStatement(_personal_data_sql);
+        
+        _list_plans_statement = _customer_db.prepareStatement(_list_plans_sql);
+	_update_plan_statement = _customer_db.prepareStatement(_update_plan_sql);
+	_plan_limit_statement = _customer_db.prepareStatement(_plan_limit_sql);
+	_current_plan_statement = _customer_db.prepareStatement(_current_plan_sql);
         
         _rent_movie_statement = _customer_db.prepareStatement(_rent_movie_sql);
         _return_movie_statement = _customer_db.prepareStatement(_return_movie_sql);
@@ -282,12 +301,50 @@ _actor_mid_statement.clearParameters();
     }
 
     public void transaction_choose_plan(int cid, int pid) throws Exception {
-        /* updates the customer's plan to pid: UPDATE customers SET plid = pid */
+        /* updates the customer's plan to pid: UPDATE customers SET plid = pid WHERE customers.cid = this.cid*/
         /* remember to enforce consistency ! */
+
+		_begin_transaction_read_write_statement.executeUpdate();
+		_personal_data_statement.clearParameters();
+		_personal_data_statement.setInt(1,cid);
+		ResultSet personal_data_set = _personal_data_statement.executeQuery();
+		personal_data_set.next();
+		
+		_current_plan_statement.clearParameters();
+		_current_plan_statement.setInt(1,cid);
+		ResultSet current_plan = _current_plan_statement.executeQuery();
+		current_plan.next();
+		
+		_plan_limit_statement.clearParameters();
+		_plan_limit_statement.setInt(1, pid);
+		ResultSet plan_limit = _plan_limit_statement.executeQuery();
+		if (plan_limit.next()) {
+			if (current_plan.getInt(1) == pid) {
+				System.out.println("You are already on the "+current_plan.getString(2)+" plan.");
+			}
+			else if ((current_plan.getInt(3) - personal_data_set.getInt(2)) <= plan_limit.getInt(2)) {
+				_update_plan_statement.clearParameters();
+				_update_plan_statement.setInt(1, pid);
+				_update_plan_statement.setInt(2, cid);
+				_update_plan_statement.executeUpdate();
+				System.out.println("You are now on the "+plan_limit.getString(1)+" plan.");
+			}
+			else {
+				 System.out.println("You have too many movies out to switch to that plan.");
+				 _rollback_transaction_statement.executeUpdate();
+			}
+		} else {
+			System.out.println("That is not a valid plan ID.");
+			_rollback_transaction_statement.executeUpdate();
+		}
     }
 
     public void transaction_list_plans() throws Exception {
         /* println all available plans: SELECT * FROM plan */
+		ResultSet plans = _list_plans_statement.executeQuery();
+		while (plans.next()) {
+			System.out.println("NAME: "+plans.getString(1)+"\tID: "+plans.getString(2)+"\tCOST: "+String.format("%.2f",plans.getFloat(3))+"\tRENTAL LIMIT: "+plans.getString(4));
+		}
     }
     
     public void transaction_list_user_rentals(int cid) throws Exception {
