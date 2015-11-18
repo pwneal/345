@@ -235,6 +235,7 @@ public class Query {
 
         ResultSet movie_set = _search_statement.executeQuery();
         while (movie_set.next()) {
+            int renter = -1;
             int mid = movie_set.getInt(1);
             System.out.println("ID: " + mid + " NAME: "
                     + movie_set.getString(2) + " YEAR: "
