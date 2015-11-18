@@ -35,7 +35,7 @@ public class Query {
                      + "WHERE x.mid = ? and x.did = y.id";
     private PreparedStatement _director_mid_statement;
     
-    // added for search method by Emma
+    // added for search method
 	private String _actor_mid_sql = "SELECT actor.fname, actor.lname "
 									+"FROM movie, casts, actor "
 									+"WHERE movie.id=casts.mid AND casts.pid=actor.id AND movie.id=?";
@@ -55,6 +55,10 @@ public class Query {
 	private PreparedStatement _plan_limit_statement;
 	private String _current_plan_sql = "SELECT Plan.plid, Plan.name, Plan.movieLimit FROM Plan, Customers WHERE Plan.plid = Customers.plid AND Customers.cid = ?";
 	private PreparedStatement _current_plan_statement;
+	
+	//for list_user_rentals:
+	private String _currently_rented_sql = "SELECT m.name FROM Movies m, Records r WHERE m.mid = r.mid AND r.cid = ?";
+	private PreparedStatement _currently_rented_statement;
 
     private String _fast_search_director_sql = "SELECT x.mid, y.* "
                      + "FROM movie_directors x, directors y "
@@ -162,6 +166,7 @@ public class Query {
 	_plan_limit_statement = _customer_db.prepareStatement(_plan_limit_sql);
 	_current_plan_statement = _customer_db.prepareStatement(_current_plan_sql);
         
+        _currently_rented_statement = _customer_db.prepareStatement(_currently_rented_sql);
         _rent_movie_statement = _customer_db.prepareStatement(_rent_movie_sql);
         _return_movie_statement = _customer_db.prepareStatement(_return_movie_sql);
         _add_cid_movie_statement = _customer_db.prepareStatement(_add_cid_movie_sql);
@@ -318,6 +323,7 @@ _actor_mid_statement.clearParameters();
 		_plan_limit_statement.setInt(1, pid);
 		ResultSet plan_limit = _plan_limit_statement.executeQuery();
 		if (plan_limit.next()) {
+			
 			if (current_plan.getInt(1) == pid) {
 				System.out.println("You are already on the "+current_plan.getString(2)+" plan.");
 			}
@@ -326,6 +332,7 @@ _actor_mid_statement.clearParameters();
 				_update_plan_statement.setInt(1, pid);
 				_update_plan_statement.setInt(2, cid);
 				_update_plan_statement.executeUpdate();
+				_commit_transaction_statement.executeUpdate();
 				System.out.println("You are now on the "+plan_limit.getString(1)+" plan.");
 			}
 			else {
@@ -340,7 +347,9 @@ _actor_mid_statement.clearParameters();
 
     public void transaction_list_plans() throws Exception {
         /* println all available plans: SELECT * FROM plan */
+        	_begin_transaction_read_write_statement.executeUpdate();
 		ResultSet plans = _list_plans_statement.executeQuery();
+		_commit_transaction_statement.executeUpdate();
 		while (plans.next()) {
 			System.out.println("NAME: "+plans.getString(1)+"\tID: "+plans.getString(2)+"\tCOST: "+String.format("%.2f",plans.getFloat(3))+"\tRENTAL LIMIT: "+plans.getString(4));
 		}
@@ -348,6 +357,15 @@ _actor_mid_statement.clearParameters();
     
     public void transaction_list_user_rentals(int cid) throws Exception {
         /* println all movies rented by the current user*/
+		_begin_transaction_read_write_statement.executeUpdate();
+		_currently_rented_statement.clearParameters();
+		_currently_rented_statement.setInt(1, cid);
+		ResultSet rented = _currently_rented_statement.executeQuery();
+		_commit_transaction_statement.executeUpdate();
+		System.out.println("You are currently renting:");
+		while (rented.next()) {
+			System.out.println(rented.getString(1));
+		}
     }
 
     public void transaction_rent(int cid, int mid) throws Exception {
