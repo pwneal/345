@@ -47,20 +47,20 @@ insert into movies (mid, name) values (3,'Placeholder 2');
 insert into movies (mid, name) values (4,'Placeholder 3');
 insert into movies (mid, name) values (5,'Placeholder 4');
 
-insert into rents (cid, mid, dateStart) values (4, 1, 547385, '2015-01-01');
+insert into rents (cid, mid, dateStart) values (1, 547385, '2015-01-01');
 update movies set cid = 1 where mid = 547385;
 
-insert into rents (cid, mid, dateStart) values (1, 1, 1, '2015-01-03');
+insert into rents (cid, mid, dateStart) values (1, 1, '2015-01-03');
 update movies set cid = 1 where mid = 1;
 
-insert into rents (cid, mid, dateStart) values (5, 1, 2, '2015-01-03');
+insert into rents (cid, mid, dateStart) values (1, 2, '2015-01-03');
 update movies set cid = 1 where mid = 2;
 
-insert into rents (cid, mid, dateStart) values (6, 1, 3, '2015-01-03');
+insert into rents (cid, mid, dateStart) values (1, 3, '2015-01-03');
 update movies set cid = 1 where mid = 3;
 
-insert into rents (cid, mid, dateStart) values (7, 1, 4, '2015-01-03');
+insert into rents (cid, mid, dateStart) values (1, 4, '2015-01-03');
 update movies set cid = 1 where mid = 4;
 
-insert into rents (cid, mid, dateStart) values (8, 1, 5, '2015-01-03');
+insert into rents (cid, mid, dateStart) values (1, 5, '2015-01-03');
 update movies set cid = 1 where mid = 5;
