@@ -147,6 +147,8 @@ public class Query {
         _return_movie_statement = _customer_db.prepareStatement(_return_movie_sql);
         _add_cid_movie_statement = _customer_db.prepareStatement(_add_cid_movie_sql);
         _remove_cid_movie_statement = _customer_db.prepareStatement(_remove_cid_movie_sql);
+        _availability_statement = _customer_db.prepareStatement(_availability_sql);
+
 
     }
 
@@ -325,15 +327,27 @@ _actor_mid_statement.clearParameters();
 
     public void transaction_return(int cid, int mid) throws Exception {
     	_begin_transaction_read_write_statement.executeUpdate();
-        _return_movie_statement.clearParameters();
-        _return_movie_statement.setInt(1, mid);
-        _return_movie_statement.setInt(2, cid);
-        _return_movie_statement.executeUpdate();
+        _availability_statement.clearParameters();
+        _availability_statement.setInt(1, mid);
+        ResultSet available = _availability_statement.executeQuery();
+
+        if (available.next()) {
+            if (available.getInt(1) == cid){
+                _return_movie_statement.clearParameters();
+                _return_movie_statement.setInt(1, mid);
+                _return_movie_statement.setInt(2, cid);
+                _return_movie_statement.executeUpdate();
         
-        _remove_cid_movie_statement.clearParameters();
-        _remove_cid_movie_statement.setInt(1, mid);
-        _remove_cid_movie_statement.executeUpdate();
-        _commit_transaction_statement.executeUpdate();
+                _remove_cid_movie_statement.clearParameters();
+                _remove_cid_movie_statement.setInt(1, mid);
+                _remove_cid_movie_statement.executeUpdate();
+                _commit_transaction_statement.executeUpdate();
+            }
+        else{
+            System.out.println("You did not rent this movie");
+            _rollback_transaction_statement.executeUpdate();
+            }
+        }
         /* return the movie mid by the customer cid */
     }
 
