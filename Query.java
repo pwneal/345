@@ -301,7 +301,6 @@ _actor_mid_statement.clearParameters();
 
         if (personal_data_set.next()) {
             int remainingRentals = personal_data_set.getInt(2);
-
             if(remainingRentals > 0){
                  _rent_movie_statement.clearParameters();
                  _add_cid_movie_statement.clearParameters();
@@ -330,7 +329,7 @@ _actor_mid_statement.clearParameters();
         _availability_statement.clearParameters();
         _availability_statement.setInt(1, mid);
         ResultSet available = _availability_statement.executeQuery();
-
+        
         if (available.next()) {
             if (available.getInt(1) == cid){
                 _return_movie_statement.clearParameters();
