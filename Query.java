@@ -57,7 +57,7 @@ public class Query {
 	private PreparedStatement _current_plan_statement;
 	
 	//for list_user_rentals:
-	private String _currently_rented_sql = "SELECT m.name FROM Movies m, Records r WHERE m.mid = r.mid AND r.cid = ?";
+	private String _currently_rented_sql = "SELECT m.name FROM Movies m, rents r WHERE m.mid = r.mid AND r.cid = ?";
 	private PreparedStatement _currently_rented_statement;
 
     private String _fast_search_director_sql = "SELECT x.mid, y.* "
@@ -81,7 +81,7 @@ public class Query {
 
     private String _personal_data_sql = "select c.name, (movielimit - count(rid)) AS remaining "+
                                         "from customers as c INNER JOIN "+
-                                        "Records on Records.cid=c.cid, "+
+                                        "Rents on Rents.cid=c.cid, "+
                                         "Plan "+
                                         "WHERE Plan.plid=c.plid AND "+
                                         "c.cid = ? AND dateEnd IS NULL "+
@@ -94,7 +94,7 @@ public class Query {
     private String _rollback_transaction_sql = "ROLLBACK TRANSACTION";
     private PreparedStatement _rollback_transaction_statement;
     
-    private String _rent_movie_sql = "insert into records values(?, ?, ?, current_timestamp, NULL);";
+    private String _rent_movie_sql = "insert into rents values(?, ?, current_timestamp, NULL);";
     private PreparedStatement _rent_movie_statement;
 
     private String _add_cid_movie_sql = "update movies set cid = ? where mid = ?;";
@@ -385,9 +385,8 @@ _actor_mid_statement.clearParameters();
                      _rent_movie_statement.clearParameters();
                      _add_cid_movie_statement.clearParameters();
 
-                     _rent_movie_statement.setInt(1, cid+mid);
-                     _rent_movie_statement.setInt(2, cid);
-                     _rent_movie_statement.setInt(3, mid);
+                     _rent_movie_statement.setInt(1, cid);
+                     _rent_movie_statement.setInt(2, mid);
                      _rent_movie_statement.executeUpdate();
 
                      _add_cid_movie_statement.setInt(1, cid);
