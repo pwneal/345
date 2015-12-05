@@ -29,6 +29,12 @@ create table Rents(
 	dateStart date,
 	dateEnd date);
 
+create table Ratings(
+	cid int references customers(cid),
+	mid int references movies(mid),
+	rating int,
+	PRIMARY KEY (cid,mid)
+);
 
 insert into plan VALUES('Basic', 1, 29.99, 5);
 insert into plan VALUES('Basic Plus', 2, 39.99, 8);

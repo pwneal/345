@@ -5,6 +5,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Array;
 import java.util.ArrayList;
+import java.util.Stack;
+import java.util.Scanner;
 
 import java.io.FileInputStream;
 
@@ -79,7 +81,7 @@ public class Query {
     private String _begin_transaction_read_write_sql = "BEGIN TRANSACTION READ WRITE";
     private PreparedStatement _begin_transaction_read_write_statement;
 
-    private String _personal_data_sql = "select c.name, (movielimit - count(Records.*)) AS remaining "+
+    private String _personal_data_sql = "select c.name, (movielimit - count(Rents.*)) AS remaining "+
                                         "from customers as c INNER JOIN "+
                                         "Rents on Rents.cid=c.cid, "+
                                         "Plan "+
@@ -105,6 +107,9 @@ public class Query {
 
     private String _remove_cid_movie_sql = "update movies set cid = NULL where mid = ?;";
     private PreparedStatement _remove_cid_movie_statement;
+	
+	private String _insert_rating = "INSERT INTO Ratings(cid, mid, rating) VALUES(?,?,?)";
+	private PreparedStatement _insert_rating_statement;
 
     public Query() {
     }
@@ -151,7 +156,7 @@ public class Query {
         _search_statement = _imdb.prepareStatement(_search_sql);
         _director_mid_statement = _imdb.prepareStatement(_director_mid_sql);
         _actor_mid_statement = _imdb.prepareStatement(_actor_mid_sql);
-	_availability_statement = _customer_db.prepareStatement(_availability_sql);
+		_availability_statement = _customer_db.prepareStatement(_availability_sql);
         _fast_search_director_statement = _imdb.prepareStatement(_fast_search_director_sql);
         _fast_search_actor_statement = _imdb.prepareStatement(_fast_search_actor_sql);
 
@@ -162,9 +167,9 @@ public class Query {
         _personal_data_statement = _customer_db.prepareStatement(_personal_data_sql);
         
         _list_plans_statement = _customer_db.prepareStatement(_list_plans_sql);
-	_update_plan_statement = _customer_db.prepareStatement(_update_plan_sql);
-	_plan_limit_statement = _customer_db.prepareStatement(_plan_limit_sql);
-	_current_plan_statement = _customer_db.prepareStatement(_current_plan_sql);
+		_update_plan_statement = _customer_db.prepareStatement(_update_plan_sql);
+		_plan_limit_statement = _customer_db.prepareStatement(_plan_limit_sql);
+		_current_plan_statement = _customer_db.prepareStatement(_current_plan_sql);
         
         _currently_rented_statement = _customer_db.prepareStatement(_currently_rented_sql);
         _rent_movie_statement = _customer_db.prepareStatement(_rent_movie_sql);
@@ -172,7 +177,7 @@ public class Query {
         _add_cid_movie_statement = _customer_db.prepareStatement(_add_cid_movie_sql);
         _remove_cid_movie_statement = _customer_db.prepareStatement(_remove_cid_movie_sql);
 
-
+		_insert_rating_statement = _customer_db.prepareStatement(_insert_rating);
     }
 
 
@@ -245,6 +250,70 @@ public class Query {
 
     /**********************************************************/
     /* main functions in this project: */
+	
+	public void transaction_rate(int cid, String movie_title)
+			throws Exception {
+			/* allows a user to search a movie by name, will generate a list of movies  
+				for them to choose from, and then accept a rating 1-5 */
+		_search_statement.clearParameters();
+        _search_statement.setString(1, '%' + movie_title + '%');
+        ResultSet movie_set = _search_statement.executeQuery();
+		Stack<Integer> MovieStack = new Stack<Integer>();
+		int mid = -1;
+		if (movie_set.next()){
+			// print out results for the search
+			Scanner inputScanner = (new Scanner(System.in));
+			do  {
+				int renter = -1;
+				mid = movie_set.getInt(1);
+				MovieStack.push(mid);
+				System.out.format("%d\t\"%s\" (%s)%n"
+						,MovieStack.size(), movie_set.getString(2), movie_set.getString(3));
+			}	while (movie_set.next());
+			System.out.print("Enter a number option to select one of the movies listed");
+			int intput =  -1; // LOL
+			while ((intput < 0) || (intput >= MovieStack.size())){ // until given valid input, get input
+				try{
+					String num = inputScanner.nextLine();
+					System.out.println(num);
+					intput = Integer.parseInt(num);
+					if ((intput < 0) && (intput >= MovieStack.size())) // invalid input, prompt the user and try again
+						System.out.println("That selection is invalid.\nPlease enter a number option listed above.");
+					
+				} catch (Exception e){ // unexpected behavior. prompt the use and try again
+					e.printStackTrace();
+					System.out.println("Didn't recognize your selection.\nPlease enter a number option listed above");
+					continue;
+				}
+			}
+			// get the mid to match the selection
+			while (MovieStack.size() != intput){
+				MovieStack.pop();
+			}
+			mid = MovieStack.pop();
+			// valid selection has been made. Get rating.
+			int rating=0;
+			System.out.println("Enter a rating (1-5)");
+			while ((rating < 1) || (rating > 5)){
+				try{
+					rating = Integer.parseInt(inputScanner.nextLine());
+					if ((rating < 0)&&(rating > 5))
+						System.out.println("That selection is invalid.\nPlease enter 1-5");
+				} catch (Exception E){
+					System.out.println("Didn't recognize your selection.\nPlease enter 1-5");
+					continue;
+				}
+			}
+			// Rating and movie have been identified. Save the rating.
+			_insert_rating_statement.clearParameters();
+			_insert_rating_statement.setInt(1,cid);
+			_insert_rating_statement.setInt(2,mid);
+			_insert_rating_statement.setInt(3, rating);
+			_insert_rating_statement.executeUpdate();
+		} else {
+			System.out.println("No items found matching the search title : \""+movie_title+"\"");
+		}
+	}
 
     public void transaction_search(int cid, String movie_title)
             throws Exception {
@@ -273,7 +342,7 @@ public class Query {
             }
             director_set.close();
             /* now you need to retrieve the actors, in the same manner */
-_actor_mid_statement.clearParameters();
+			_actor_mid_statement.clearParameters();
 			_actor_mid_statement.setInt(1, mid);
 			ResultSet actor_set = _actor_mid_statement.executeQuery();
 			while (actor_set.next()) {
