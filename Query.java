@@ -79,7 +79,7 @@ public class Query {
     private String _begin_transaction_read_write_sql = "BEGIN TRANSACTION READ WRITE";
     private PreparedStatement _begin_transaction_read_write_statement;
 
-    private String _personal_data_sql = "select c.name, (movielimit - count(rid)) AS remaining "+
+    private String _personal_data_sql = "select c.name, (movielimit - count(Records.*)) AS remaining "+
                                         "from customers as c INNER JOIN "+
                                         "Rents on Rents.cid=c.cid, "+
                                         "Plan "+
