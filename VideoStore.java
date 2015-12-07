@@ -14,6 +14,7 @@ public class VideoStore {
         System.out.println("> return [<movie id>]");
         System.out.println("> fastsearch <movie title>");
 		System.out.println("> rate <movie title>");
+		System.out.println("> recommend");
         System.out.println("> quit");
     }
 
@@ -136,6 +137,9 @@ public class VideoStore {
                         .println("Error: need to type in movie title");
                 }
 			}
+			else if (t.equals("recommend")){
+				q.transaction_recommend(cid);
+			}
             else {
                 System.out.println("Error: unrecognized command '" + t
                                    + "'");
@@ -164,4 +168,3 @@ public class VideoStore {
     }
 
 }
-
