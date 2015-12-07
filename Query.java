@@ -4,16 +4,27 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Array;
+import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Random;
 import java.util.Stack;
 import java.util.Scanner;
-
+import java.io.BufferedReader;
 import java.io.FileInputStream;
+import java.io.FileReader;
+import java.io.IOException;
 
 /**
  * Runs queries against a back-end database
  */
 public class Query {
+	int numOfCusts = 100000; //480189
+	int numOfFilms = 1000; //17770; lower numbers to test
+	int[][]ratings = null;
+	String[]movieTitles= new String[17770];
+	
     private static Properties configProps = new Properties();
 
     private static String imdbUrl;
@@ -110,6 +121,9 @@ public class Query {
 	
 	private String _insert_rating = "INSERT INTO Ratings(cid, mid, rating) VALUES(?,?,?)";
 	private PreparedStatement _insert_rating_statement;
+	
+	private String _get_user_ratings_sql = "select mid, rating from Ratings where cid = ?";
+	private PreparedStatement _get_user_ratings_statement;
 
     public Query() {
     }
@@ -139,6 +153,8 @@ public class Query {
         _customer_db = DriverManager.getConnection(customerUrl, // database
                 postgreSQLUser, // user
                 postgreSQLPassword); // password
+        
+        create_recommendation_matrix();
     }
 
     public void closeConnection() throws Exception {
@@ -178,6 +194,7 @@ public class Query {
         _remove_cid_movie_statement = _customer_db.prepareStatement(_remove_cid_movie_sql);
 
 		_insert_rating_statement = _customer_db.prepareStatement(_insert_rating);
+		_get_user_ratings_statement = _customer_db.prepareStatement("_get_user_ratings_sql");
     }
 
 
@@ -277,7 +294,7 @@ public class Query {
 					String num = inputScanner.nextLine();
 					System.out.println(num);
 					intput = Integer.parseInt(num);
-					if ((intput < 0) && (intput >= MovieStack.size())) // invalid input, prompt the user and try again
+					if ((intput < 0) || (intput >= MovieStack.size())) // invalid input, prompt the user and try again
 						System.out.println("That selection is invalid.\nPlease enter a number option listed above.");
 					
 				} catch (Exception e){ // unexpected behavior. prompt the use and try again
@@ -547,5 +564,101 @@ public class Query {
             }while(actor_set.next());
         }
     }
+    
+    public void create_recommendation_matrix() throws IOException{
+    	ratings = new int[numOfFilms+1][numOfCusts];
+    	BufferedReader in = null;
+    	String root = "C:/Users/Patrick/Downloads/download/";
+    	String next = null;
+    	
+    	for(int x=0; x<numOfFilms; x++){
+            int xID = x+1;
+    		String xString = "" + xID;
+    		String file = ("0000000" + xString).substring(xString.length());
+    		try{
+        		in = new BufferedReader(new FileReader(root + "training_set/mv_" + file + ".txt"));
+                in.readLine(); //one throwaway for the header line
+        		while((next = in.readLine())!=null){
+        			String[]data = next.split(",");
+        			int custID = Integer.parseInt(data[0]);
+        			int hashID = custID%numOfCusts;
+        			int timer = 0;
+        			while(ratings[numOfFilms][hashID]!=custID && ratings[numOfFilms][hashID]!=0 && timer<20){
+        				hashID++;
+        				hashID%=numOfCusts;
+        				timer++;
+        			}
+        			if(timer<20){
+            			ratings[numOfFilms][hashID]=custID;
+            			ratings[x][hashID]=Integer.parseInt(data[1]);	
+        			}
+        		}
+    		}  
+    		finally{
+    			if(in!=null)
+    				in.close();
+    		}
+    	}
+    	
+    	in = new BufferedReader(new FileReader(root +"movie_titles.txt"));
+    	while((next = in.readLine())!=null){
+    		String[]data = next.split(",");
+    		int movieID = Integer.parseInt(data[0]);
+    		movieTitles[movieID-1]= data[2];
+    	}
+    }
+    
+    public void transaction_recommend(int cid) throws SQLException{
+        ArrayList <Integer> userRatingsList = new ArrayList<Integer>();
+    	int[]predictedRatings = new int[numOfFilms];
+    	
+    	/*get our user ratings here
+		_get_user_ratings_statement.clearParameters();
+		_get_user_ratings_statement.setInt(1, cid);
+		ResultSet SQLratings = _get_user_ratings_statement.executeQuery();
+		while (SQLratings.next()) {
+			userRatingsList.add((SQLratings.getInt(1)*10)+SQLratings.getInt(2));
+		}
+        Integer[] userRatings = userRatingsList.toArray(new Integer[userRatingsList.size()]);
 
+        //then they need to be turned into Netflix IDs
+*/
+    	Integer[] userRatings = {55825,57055,82925,86875,96285,98865,162655}; // for test purposes
+    	
+    	for(int x=0; x<numOfFilms; x++){
+    		int totalInstances=0;
+    		for(int rating:userRatings){
+    			int id = rating/10;
+    			if(!(id==x+1)){
+        			int realRating = rating%10;
+        			int sum = 0;
+        			int instances = 0;
+        			for(int y=0; y<numOfCusts; y++)
+        				if(ratings[x][y]!=0&&ratings[id][y]!=0){
+        					sum+=(ratings[x][y]-ratings[id][y]);
+        					instances++;
+        				}
+        			sum/=instances;
+        			totalInstances++;
+        			predictedRatings[x]+= instances*(sum+realRating);	
+    			}
+    		}
+    		predictedRatings[x]/=totalInstances;
+    	}
+    	
+    	Arrays.sort(predictedRatings);
+    	ArrayList<Integer> indices = new ArrayList<Integer>();
+    	for (int a=0;a<100;a++){
+    	    indices.add(a);
+    	}
+    	Collections.shuffle(indices);
+    	System.out.println("Here are some movie recommendations for you: ");
+    	int recommendID = 0;
+    	for(int x=0; x<5; x++){
+    		recommendID = predictedRatings[numOfFilms-indices.get(x)];
+    		System.out.println(movieTitles[recommendID-1]);
+    	}
+    	
+    	
+    }
 }
