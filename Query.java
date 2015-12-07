@@ -20,8 +20,8 @@ import java.io.IOException;
  * Runs queries against a back-end database
  */
 public class Query {
-	int numOfCusts = 100000; //480189
-	int numOfFilms = 1000; //17770; lower numbers to test
+	int numOfCusts = 10000; //480189
+	int numOfFilms = 10000; //17770; lower numbers to test
 	int[][]ratings = null;
 	String[]movieTitles= new String[17770];
 	
@@ -610,7 +610,7 @@ public class Query {
     
     public void transaction_recommend(int cid) throws SQLException{
         ArrayList <Integer> userRatingsList = new ArrayList<Integer>();
-    	int[]predictedRatings = new int[numOfFilms];
+    	double[][]predictedRatings = new double[numOfFilms][2];
     	
     	/*get our user ratings here
 		_get_user_ratings_statement.clearParameters();
@@ -623,7 +623,7 @@ public class Query {
 
         //then they need to be turned into Netflix IDs
 */
-    	Integer[] userRatings = {55825,57055,82925,86875,96285,98865,162655}; // for test purposes
+    	Integer[] userRatings = {55825,57055,82925,86875,96285,98645}; // for test purposes
     	
     	for(int x=0; x<numOfFilms; x++){
     		int totalInstances=0;
@@ -638,25 +638,34 @@ public class Query {
         					sum+=(ratings[x][y]-ratings[id][y]);
         					instances++;
         				}
-        			sum/=instances;
-        			totalInstances++;
-        			predictedRatings[x]+= instances*(sum+realRating);	
+                    if(instances!=0){
+                        sum/=instances;
+                        totalInstances+=instances;
+                        predictedRatings[x][0]+= instances*(realRating+sum);   
+                    }
     			}
     		}
-    		predictedRatings[x]/=totalInstances;
+            if(totalInstances!=0){
+                predictedRatings[x][0]/=totalInstances;
+                predictedRatings[x][1]=x;
+            }
     	}
     	
-    	Arrays.sort(predictedRatings);
+    	Arrays.sort(predictedRatings, new java.util.Comparator<double[]>(){
+            public int compare(double[]a, double[]b){
+                return Double.compare(a[0], b[0]);
+            }
+        });
     	ArrayList<Integer> indices = new ArrayList<Integer>();
-    	for (int a=0;a<100;a++){
+    	for (int a=0;a<25;a++){
     	    indices.add(a);
     	}
     	Collections.shuffle(indices);
     	System.out.println("Here are some movie recommendations for you: ");
-    	int recommendID = 0;
+    	Double recommendID = 0.0;
     	for(int x=0; x<5; x++){
-    		recommendID = predictedRatings[numOfFilms-indices.get(x)];
-    		System.out.println(movieTitles[recommendID-1]);
+    		recommendID = predictedRatings[numOfFilms-indices.get(x)][1];
+    		System.out.println(movieTitles[(recommendID.intValue())+1];
     	}
     	
     	
